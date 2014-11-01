@@ -4,11 +4,9 @@ import matplotlib.pyplot as plt
 
 class DSolver:
 
-    def __init__(self, p_expr_str, g_expr_str, phi_expr_str = None):
+    def __init__(self, yd_expression_str, phi_expr_str = None):
         self.x_symb, self.y_symb, self.yd_symb = symbols("x y yd")
-        self.p_expr = sympify(p_expr_str)
-        self.g_expr = sympify(g_expr_str)
-        self.yd_expr = sympify(g_expr_str + "-" + p_expr_str + "* y")
+        self.yd_expr = sympify(yd_expression_str)
         
         self.yd_func = lambdify((self.x_symb,self.y_symb),self.yd_expr,"numpy")
 
@@ -21,8 +19,9 @@ class DSolver:
             self.phi_expr = sympify(phi_expr_str)
             self.phi_func = lambdify(self.x_symb,self.phi_expr)
 
+    # Initialization
     def __initialize__(self,y0,n):
-        # Initialization
+        
         self.y = np.zeros(n)
         self.phi = np.zeros(n)
         self.error = np.zeros(n)
@@ -34,6 +33,7 @@ class DSolver:
             self.phi[0] = self.phi_func(0)
             self.error[0] = self.phi[0] - self.y[0]
 
+    # Default Euler method
     def __solve_euler__(self,x0,y0,h,n):
 
         self.__initialize__(y0,n)
@@ -107,9 +107,8 @@ class DSolver:
         
 
 
-# y' + p(x)*y = g(x)
-p_expression = "-4"
-g_expression = "1-x"
+# y' = g(x) - p(x)*y
+yd_expression = "1-x + 4*y"
 
 # phi(x): analytical solution for error comparisson
 phi_expression = "(x/4) - (3/16) + exp(4*x)*(19/16)"
@@ -117,7 +116,7 @@ phi_expression = "(x/4) - (3/16) + exp(4*x)*(19/16)"
 
 
 
-ds = DSolver(p_expression,g_expression, phi_expression)
+ds = DSolver(yd_expression, phi_expression)
 
 ds.solve(0,1,0.1,7,"BackEuler")
 
