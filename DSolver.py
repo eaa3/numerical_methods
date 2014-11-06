@@ -2,6 +2,34 @@ from sympy import *
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+"""
+Implementation of Numerical Methods
+Center for Informatics, Federal University of Pernambuco (CIn/UFPE)
+
+
+@author: Ermano A. Arruda <eaa3@cin.ufpe.br>
+
+
+
+Implemented methods:
+
+----One-step/Stepwise/Starting Methods----
+
+1) Euler (error ~ h^2)
+2) Improved Euler Method (Modified Euler) (error ~ h^3)
+3) Backward Euler Method (error ~ h^2)
+4) Runge-Kutta Method (error ~ h^4)
+5) Three Term Taylor Series Method (error ~ h^3)
+
+----Multistep or Continuing Methods----
+
+->TODO<-
+
+
+
+"""
+
 class DSolver:
 
     def __init__(self, yd_expression_str, phi_expr_str = None):
@@ -71,7 +99,7 @@ class DSolver:
                 self.phi[i] = self.phi_func(i*h)
                 self.error[i] = self.phi[i] - self.y[i]
 
-    # Modified Euler method
+    # Runge-Kutta method
     def __solve_runge_kutta__(self,x0,y0,h,n):
 
         self.__initialize__(y0,n)
@@ -91,6 +119,27 @@ class DSolver:
             if self.phi_func != None:
                 self.phi[i] = self.phi_func(i*h)
                 self.error[i] = self.phi[i] - self.y[i]
+    # Three term Taylor Series method
+    def __solve_taylor_series__(self,x0,y0,h,n):
+
+        self.__initialize__(y0,n)
+
+        f_x = lambdify((self.x_symb,self.y_symb),diff(self.yd_expr,self.x_symb),"numpy")
+        f_y = lambdify((self.x_symb,self.y_symb),diff(self.yd_expr,self.y_symb),"numpy")
+
+        
+        for i in range(1,n):
+            yd = self.yd_func((i-1)*h,self.y[i-1])
+            ydd = f_x((i-1)*h, yd) + f_y((i-1)*h, yd)*yd
+
+            self.y[i] = self.y[i-1] + h*yd + ((h**2)/2)*ydd
+
+            if self.phi_func != None:
+                self.phi[i] = self.phi_func(i*h)
+                self.error[i] = self.phi[i] - self.y[i]
+
+
+            
 
     def solve(self,x0,y0,h,n, method="Euler"):
 
@@ -104,6 +153,8 @@ class DSolver:
             self.__solve_improved_euler__(x0,y0,h,n)
         elif (method == "RungeKutta"):
             self.__solve_runge_kutta__(x0,y0,h,n)
+        elif (method == "Taylor"):
+            self.__solve_taylor_series__(x0,y0,h,n)
         
 
 
@@ -118,7 +169,7 @@ phi_expression = "(x/4) - (3/16) + exp(4*x)*(19/16)"
 
 ds = DSolver(yd_expression, phi_expression)
 
-ds.solve(0,1,0.1,7,"BackEuler")
+ds.solve(0,1,0.1,7,"Taylor")
 
 
 print "Y: ", ds.y
