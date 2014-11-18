@@ -90,20 +90,20 @@ class DSolver:
 
     # Default Euler method
 
-    def __euler_integral__(self,h,i):
+    def __euler__(self,h,i):
         self.y[i] = self.y[i-1] + self.yd_func((i-1)*h,self.y[i-1])*h
         return self.y[i]
 
-    # Modified Euler method
+    # Modified (Improved) Euler method
 
-    def __improved_euler_integral__(self,h,i):
+    def __improved_euler__(self,h,i):
         self.y[i] = self.y[i-1] + (self.yd_func((i-1)*h,self.y[i-1])+self.yd_func(i*h,self.y[i-1] + self.y[i-1]*h))*h*0.5
         return self.y[i]
 
 
     # Backward Euler method
 
-    def __backward_euler_integral__(self,h,i):
+    def __backward_euler__(self,h,i):
         
         yi = symbols("yi")
    
@@ -117,7 +117,7 @@ class DSolver:
 
     # Runge-Kutta method
 
-    def __runge_kutta_integral__(self,h,i):
+    def __runge_kutta__(self,h,i):
         kn1 = kn2 = kn3 = kn4 = 0
         
         kn1 = self.yd_func((i-1)*h,self.y[i-1])
@@ -132,7 +132,7 @@ class DSolver:
     
     # Three term Taylor Series method
 
-    def __taylor_series_integral__(self,f_x,f_y,h,i):
+    def __3term_taylor_series__(self,f_x,f_y,h,i):
 
 
         yd = self.yd_func((i-1)*h,self.y[i-1])
@@ -146,12 +146,12 @@ class DSolver:
 
     # Three term Adams-Bashforth Series method
 
-    def __ab_integral__(self,p, h,i):
+    def __adams_bashforth__(self,p, h,i):
 
         integral = 0
 
         if i <= p:
-            self.__runge_kutta_integral__(h,i)
+            self.__runge_kutta__(h,i)
         else:
 
             if p == 1:
@@ -193,13 +193,13 @@ class DSolver:
 
     # Three term Adams-Multon Series method
 
-    def __am_integral__(self,p, h,i):
+    def __adams_multon__(self,p, h,i):
 
         integral = 0
 
 
         if i < p:
-            self.__runge_kutta_integral__(h,i)
+            self.__runge_kutta__(h,i)
             return self.y[i]
 
 
@@ -251,12 +251,12 @@ class DSolver:
 
 
     # Prediction correction
-    def __pc_integral__(self,p, h,i):
+    def __predictor_corrector__(self,p, h,i):
 
         integral = 0
 
         # Prediction step
-        self.__ab_integral__(p,h,i)
+        self.__adams_bashforth__(p,h,i)
 
         
 
@@ -315,14 +315,14 @@ class DSolver:
         return self.y[i]
 
     # Prediction correction
-    def __backward_diff_integral__(self,p, h,i):
+    def __backward_diff__(self,p, h,i):
 
 
         y_tmp = 0
 
 
         if i < p:
-            self.__runge_kutta_integral__(h,i)
+            self.__runge_kutta__(h,i)
             return self.y[i]
 
 
@@ -332,11 +332,16 @@ class DSolver:
         ydn1 = self.yd_expr.subs({self.y_symb:yi, self.x_symb:(i*h)})
 
         if p == 1:
+
             y_tmp = self.y[i-1] + h*ydn1
+
         elif p == 2:
 
-
             y_tmp = ((4.0/3.0)*self.y[i-1] - self.y[i-2]/3.0 + (2.0/3.0)*h*ydn1)
+
+        elif p == 3:
+
+            y_tmp = ((18.0/11.0)*self.y[i-1] - (9.0/11.0)*self.y[i-2] + (2.0/11.0)*self.y[i-3] + (6.0/11.0)*h*ydn1)
 
         elif p == 4:
 
@@ -354,16 +359,16 @@ class DSolver:
 
     def __select_method__(self,method="Euler"):
         
-        integral_func = self.__euler_integral__
+        method_func = self.__euler__
 
         if( method == "Euler" ):
-            integral_func = self.__euler_integral__
+            method_func = self.__euler__
         elif (method == "BackEuler"):
-            integral_func = self.__backward_euler_integral__
+            method_func = self.__backward_euler__
         elif (method == "ImpEuler"):
-            integral_func = self.__improved_euler_integral__
+            method_func = self.__improved_euler__
         elif (method == "RungeKutta"):
-            integral_func = self.__runge_kutta_integral__
+            method_func = self.__runge_kutta__
         elif (method == "Taylor"):
 
              # Partial derivative of yd w.r.t to x
@@ -371,70 +376,70 @@ class DSolver:
             # Partial derivative of yd w.r.t to y
             f_y = lambdify((self.x_symb,self.y_symb),diff(self.yd_expr,self.y_symb),"numpy")
 
-            integral_func = partial(self.__taylor_series_integral__,f_x,f_y)
+            method_func = partial(self.__3term_taylor_series__,f_x,f_y)
 
         elif (method == "Adams-Bashforth1"):
 
-            integral_func = partial(self.__ab_integral__,1)
+            method_func = partial(self.__adams_bashforth__,1)
 
         elif (method == "Adams-Bashforth2"):
 
-            integral_func = partial(self.__ab_integral__,2)
+            method_func = partial(self.__adams_bashforth__,2)
         elif (method == "Adams-Bashforth3"):
 
-            integral_func = partial(self.__ab_integral__,3)
+            method_func = partial(self.__adams_bashforth__,3)
         elif (method == "Adams-Bashforth4"):
 
-            integral_func = partial(self.__ab_integral__,4)
+            method_func = partial(self.__adams_bashforth__,4)
 
         elif (method == "Adams-Multon1"):
 
-            integral_func = partial(self.__am_integral__,1)
+            method_func = partial(self.__adams_multon__,1)
 
         elif (method == "Adams-Multon2"):
 
-            integral_func = partial(self.__am_integral__,2)
+            method_func = partial(self.__adams_multon__,2)
         elif (method == "Adams-Multon3"):
 
-            integral_func = partial(self.__am_integral__,3)
+            method_func = partial(self.__adams_multon__,3)
         elif (method == "Adams-Multon4"):
 
-            integral_func = partial(self.__am_integral__,4)
+            method_func = partial(self.__adams_multon__,4)
 
-        elif (method == "Prediction-Correction1"):
+        elif (method == "Predictor-Corrector1"):
 
-            integral_func = partial(self.__pc_integral__,1)
+            method_func = partial(self.__predictor_corrector__,1)
 
-        elif (method == "Prediction-Correction2"):
+        elif (method == "Predictor-Corrector2"):
 
-            integral_func = partial(self.__pc_integral__,2)
-        elif (method == "Prediction-Correction3"):
+            method_func = partial(self.__predictor_corrector__,2)
+        elif (method == "Predictor-Corrector3"):
 
-            integral_func = partial(self.__pc_integral__,3)
-        elif (method == "Prediction-Correction4"):
+            method_func = partial(self.__predictor_corrector__,3)
+        elif (method == "Predictor-Corrector4"):
 
-            integral_func = partial(self.__pc_integral__,4)
+            method_func = partial(self.__predictor_corrector__,4)
 
         elif (method == "BackDiff1"):
 
-            integral_func = partial(self.__backward_diff_integral__,1)
+            method_func = partial(self.__backward_diff__,1)
 
         elif (method == "BackDiff2"):
 
-            integral_func = partial(self.__backward_diff_integral__,2)
+            method_func = partial(self.__backward_diff__,2)
         elif (method == "BackDiff3"):
-            print "TODO: BackDiff3"
-            #integral_func = partial(self.__pc_integral__,3) # TODO: Change to backward_diff
+
+            method_func = partial(self.__backward_diff__,3)
         elif (method == "BackDiff4"):
 
-            integral_func = partial(self.__backward_diff_integral__,4)
+            method_func = partial(self.__backward_diff__,4)
 
 
 
 
-        return integral_func
+        return method_func
 
-    def __solve__(self,x0,y0,h,n, integral_func):
+    def __solve__(self,x0,y0,h,n, method_func):
 
         self.h = h
         self.__initialize__(x0,y0,n)
@@ -442,7 +447,7 @@ class DSolver:
         for i in range(1,n):
 
             self.x[i] = self.x[i-1] + self.h
-            integral_func(self.h,i)
+            method_func(self.h,i)
             
 
             if self.phi_func != None:
@@ -454,10 +459,10 @@ class DSolver:
         print "---------------------Solving for method: ", method, "---------------------"
 
         self.method = method
-        integral_func = self.__select_method__(method)
+        method_func = self.__select_method__(method)
 
 
-        self.__solve__(x0,y0,h,n,integral_func)
+        self.__solve__(x0,y0,h,n,method_func)
 
 
     def plot(self,invert_yaxis = False ):
@@ -495,7 +500,7 @@ phi_expression = "(x/4) - (3/16) + exp(4*x)*(19/16)"
 
 ds = DSolver(yd_expression, phi_expression)
 
-ds.solve(0,1,0.1,10,"BackDiff1")
+ds.solve(0,1,0.1,10,"BackDiff3")
 
 
 print "Y: ", ds.y
