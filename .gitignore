@@ -1,3 +1,7 @@
 demoMethods.py
 makefile
 matplot.py
+.DS_Store
+*.aux
+*.log
+*.toc

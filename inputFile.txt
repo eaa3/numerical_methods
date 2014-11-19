@@ -1,0 +1,63 @@
+#---------------------------------------------------------------------------------
+# First order differential linear equation
+# y' = g(x) - p(x)*y
+#
+# (!!) -> YOU MUST USE THE VARIABLES x and y (IN LOWERCASE),
+# (!!) -> NO OTHER VARIABLE SYMBOL IS ALLOWED.
+#---------------------------------------------------------------------------------
+yd = "1-x + 4*y"
+
+#---------------------------------------------------------------------------------
+# Exact solution (if you dont have phi, make phi = None)
+#---------------------------------------------------------------------------------
+phi = (x/4) - (3/16) + exp(4*x)*(19/16)
+
+#---------------------------------------------------------------------------------
+# Initial value
+#---------------------------------------------------------------------------------
+y0 = 1
+
+#---------------------------------------------------------------------------------
+# Step size
+#---------------------------------------------------------------------------------
+h = 0.1
+
+#---------------------------------------------------------------------------------
+# Number of evaluations
+#---------------------------------------------------------------------------------
+n = 10
+
+#---------------------------------------------------------------------------------
+# Error Correction Threshold (only used for Predictor-Corrector method)
+# typically 0 < episolon < 1, but episolon may be > 1
+#---------------------------------------------------------------------------------
+episolon = 0.3
+
+#---------------------------------------------------------------------------------
+# The method must be one of the following values:
+#
+# 1) "Euler"
+#
+# 2) "BackEuler"
+#
+# 3) "ImpEuler"
+#
+# 4) "RungeKutta"
+#
+# 5) "Taylor"
+#
+# 6) "Adams-Bashforth[X]" where [X] is one of the following values [1,2,3,4]
+#    (e.g. Adams-Bashforth1 is adams-bashforth method of degree one)
+#
+# 7) "Adams-Multon[X]" where [X] is one of the following values [1,2,3,4]
+#    (e.g. Adams-Multon1 is the adams-multon method of degree one)
+#
+# 8) "Predictor-Corrector[X]" where [X] is one of the following values [1,2,3,4]
+#    (e.g. Preditor-Corrector1 is the Preditor-Corrector method of degree one)
+#
+# 9) "BackDiff[X]" where [X] is one of the following values [1,2,3,4]
+#    (e.g. BackDiff1 is the Backward differentiation formula method of degree one)
+#--------------------------------------------------------------------------------- 
+Predictor-Corrector3
+
+

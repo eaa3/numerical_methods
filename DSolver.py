@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 import subprocess
 
+import sys
+
 
 
 """
@@ -31,8 +33,8 @@ Implemented methods:
 
 6) Adams-Bashforth[1,2,3,4] (error = h^2, h^3, h^4, h^5 - respectively ) [TODO: Check error correctness]
 7) Adams-Multon[1,2,3,4] (error = h^2, h^3, h^4, h^5 - respectively ) [TODO: Check error correctness]
-8) Prevision-Correction[1,2,3,4] (error = h^2, h^3, h^4, h^5 - respectively ) [TODO: Check error correctness]
-10) Backward Differentiation (BackDiff[1,2,3,4]) (error = h^2, h^3, h^4, h^5 - respectively ) [TODO: Check error correctness]
+8) Preditor-Corrector[1,2,3,4] (error = h^2, h^3, h^4, h^5 - respectively ) [TODO: Check error correctness]
+9) Backward Differentiation (BackDiff[1,2,3,4]) (error = h^2, h^3, h^4, h^5 - respectively ) [TODO: Check error correctness]
 
 
 
@@ -41,7 +43,8 @@ Implemented methods:
 
 class DSolver:
 
-    def __init__(self, yd_expression_str, phi_expr_str = None):
+    def __init__(self, yd_expression_str, phi_expr_str = None, episolon = 0.1):
+
         self.x_symb, self.y_symb, self.yd_symb = symbols("x y yd")
         self.yd_expr = sympify(yd_expression_str)
         
@@ -55,6 +58,8 @@ class DSolver:
 
         self.iyd = 0
 
+        self.episolon = episolon
+
         self.phi_func = None
         if( phi_expr_str != None ):
             self.phi_expr = sympify(phi_expr_str)
@@ -63,11 +68,11 @@ class DSolver:
     # Initialization
     def __initialize__(self,x0,y0,n):
         
-        self.x = np.zeros(n)
-        self.y = np.zeros(n)
-        self.yd = np.zeros(n)
-        self.phi = np.zeros(n)
-        self.error = np.zeros(n)
+        self.x = np.zeros(n+1)
+        self.y = np.zeros(n+1)
+        self.yd = np.zeros(n+1)
+        self.phi = np.zeros(n+1)
+        self.error = np.zeros(n+1)
 
         self.iyd = 0
 
@@ -91,13 +96,15 @@ class DSolver:
     # Default Euler method
 
     def __euler__(self,h,i):
+
         self.y[i] = self.y[i-1] + self.yd_func((i-1)*h,self.y[i-1])*h
+
         return self.y[i]
 
     # Modified (Improved) Euler method
 
     def __improved_euler__(self,h,i):
-        self.y[i] = self.y[i-1] + (self.yd_func((i-1)*h,self.y[i-1])+self.yd_func(i*h,self.y[i-1] + self.y[i-1]*h))*h*0.5
+        self.y[i] = self.y[i-1] + h*(self.yd_func((i-1)*h,self.y[i-1])+self.yd_func(i*h,self.y[i-1] + self.y[i-1]*h))*0.5
         return self.y[i]
 
 
@@ -307,8 +314,11 @@ class DSolver:
         y_tmp = self.y[i-1] + integral
 
 
-        if abs(y_tmp - self.y[i]) > 0.001:
+        # Error very high! -> Decrease H
+        if abs(y_tmp - self.y[i]) > self.episolon:
             print "Error very high! -> Decrease H"
+
+            #self.h *= 0.8
 
         self.y[i] = y_tmp
 
@@ -444,7 +454,7 @@ class DSolver:
         self.h = h
         self.__initialize__(x0,y0,n)
 
-        for i in range(1,n):
+        for i in range(1,n+1):
 
             self.x[i] = self.x[i-1] + self.h
             method_func(self.h,i)
@@ -456,7 +466,7 @@ class DSolver:
 
     def solve(self,x0,y0,h,n, method="Euler"):
 
-        print "---------------------Solving for method: ", method, "---------------------"
+        print "------------ Solving [ yd =",self.yd_expr,"] for method:", method, "-------------"
 
         self.method = method
         method_func = self.__select_method__(method)
@@ -486,34 +496,78 @@ class DSolver:
         plt.show()
 
 
+def readInput(filename):
+
+    yd_str = None
+    yd_expression = None
+    phi_str = None
+    phi_expression = None
+    y0 = 0
+    n = 10
+    h = 0.1
+    episolon = 0.1
+    method = "Euler"
+
+    try:
+
+        input_file = open(filename, 'r')
         
+        lines = input_file.readlines()
+
+        valid_lines = [line.replace(' ','').replace('\n','').replace('\r','') for line in lines if ((not line.startswith("#")) and len(line.replace(" ",'')) > 1)]
+
+        print valid_lines
+        # y' = g(x) - p(x)*y
+        yd_str = valid_lines[0].split("=")[1]
+
+        yd_expression = yd_str
+
+        # phi(x): analytical solution for error comparisson
+        phi_str = valid_lines[1].split("=")[1]
+        phi_expression = phi_str if len(phi_str) > 1 else None
 
 
-# y' = g(x) - p(x)*y
-yd_expression = "1-x + 4*y"
 
-# phi(x): analytical solution for error comparisson
-phi_expression = "(x/4) - (3/16) + exp(4*x)*(19/16)"
+        y0_str = valid_lines[2]
+        h_str = valid_lines[3]
+        n_str = valid_lines[4]
+        episolon_str = valid_lines[5]
 
+        y0 = float(y0_str.split("=")[1])
+        h = float(h_str.split("=")[1])
+        n = float(n_str.split("=")[1])
 
+        episolon = float(episolon_str.split("=")[1])
 
+        method = valid_lines[6]
+    except:
+        print "WRONG/NON-EXISTENT FILE NAME OR MALFORMED INPUT FILE"
+        sys.exit(1)
 
-ds = DSolver(yd_expression, phi_expression)
+    return (yd_expression,phi_expression,y0,n,h,episolon,method)
 
-ds.solve(0,1,0.1,10,"BackDiff3")
+def main(argv=None):
 
+    yd_expression = None
+    phi_expression = None
+    y0 = 0
+    n = 0
+    h = 0.1
+    method = "Euler"
 
-print "Y: ", ds.y
-print "Phi: ", ds.phi
-print "Error: ", ds.error
-print "Acumulated Error: ", sum(abs(ds.error))
+    yd_expression,phi_expression,y0,n,h,episolon,method = readInput(argv[1] if len(argv)>1 else "inputFile.txt")
+    
+    ds = DSolver(yd_expression, phi_expression,episolon)
 
-ds.plot()
+    ds.solve(0,y0,h,int((1.0/h)+1),method)
 
+    print "Y: ", ds.y
+    print "Phi: ", ds.phi
+    print "Error: ", ds.error
+    print "Acumulated Error: ", sum(abs(ds.error))
 
-#proc = subprocess.Popen(['gnuplot','-p'], 
-#                        shell=True,
-#                        stdin=subprocess.PIPE,
-#                        )
-#proc.stdin.write('set xrange [0:10]; set yrange [-2:2]\n')
-#proc.stdin.write('plot sin(x)\n')
+    ds.plot()
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
+
