@@ -90,7 +90,7 @@ class DVSolver:
         self.x = [x0]
         self.error = []
         self.accerror = []
-        self.phi = [0]
+        self.phi = []
 
         if self.phi_func != None:
             self.phi.append(self.phi_func(0))
@@ -160,7 +160,7 @@ class DVSolver:
         plt.subplot(2, 1, 1)
         plt.title(self.method + " (h = " + str(self.h) +")")
         p1, = plt.plot(self.t, mapped_x, 'b', linewidth=1, label='y')
-        p2, = plt.plot(self.t, self.phi[0:len(self.phi)-1], 'g', linewidth=1, label='phi(x)')
+        p2, = plt.plot(self.t, self.phi, 'g', linewidth=1, label='phi(x)')
         plt.legend( [p1, p2], ['y', 'phi(x)'] )
 
         ax = plt.subplot(2, 1, 2)
