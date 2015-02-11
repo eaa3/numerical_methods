@@ -656,7 +656,7 @@ def main(argv=None):
     A = np.mat("0 1 0 0; 0 0 1 0; 0 0 0 1; 12 -8 -1 -2")
     n = 100
     h = 0.01
-    method = "Euler"
+    method = "Adams-Bashforth5"
 
     ds = DVSolver(A,x0,g_expressions_str,phi_expression_str)
 
