@@ -481,7 +481,7 @@ class DVSolver:
         plt.subplot(2, 1, 1)
         plt.title(self.method + " (h = " + str(self.h) +")")
         p1, = plt.plot(self.t, mapped_x, 'b', linewidth=2, label='y')
-        p2, = plt.plot(self.t, self.phi, 'g', linewidth=1, label='phi(x)')
+        p2, = plt.plot(self.t, self.phi, color='#00ff00', linewidth=1, label='phi(x)')
         plt.legend( [p1, p2], ['y', 'phi(x)'] )
 
         ax = plt.subplot(2, 1, 2)
@@ -656,7 +656,7 @@ def main(argv=None):
     A = np.mat("0 1 0 0; 0 0 1 0; 0 0 0 1; 12 -8 -1 -2")
     n = 100
     h = 0.01
-    method = "Adams-Bashforth5"
+    method = "BackDiff4"
 
     ds = DVSolver(A,x0,g_expressions_str,phi_expression_str)
 

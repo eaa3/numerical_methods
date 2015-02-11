@@ -8,3 +8,4 @@ matplot.py
 *.png
 *.pdf
 reports
+*.dvi
