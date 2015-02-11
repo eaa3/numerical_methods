@@ -92,6 +92,8 @@ class DVSolver:
         self.accerror = []
         self.phi = []
 
+        
+
         if self.phi_func != None:
             self.phi.append(self.phi_func(0))
             self.error.append(abs(self.phi[0] - self.x[0][0,0]))
@@ -108,6 +110,97 @@ class DVSolver:
 
         return self.x[i]
 
+    def __improved_euler__(self,h,i):
+
+        xi = self.x[i-1] + h*(self.xd_func(self.A,self.x[i-1],(i-1)*h)+self.xd_func(self.A,self.x[i-1] + self.x[i-1]*h,i*h))*0.5
+        
+        self.x.append( xi )
+
+        return self.x[i]
+
+
+    # Backward Euler method
+
+    def __backward_euler__(self,h,i):
+        
+        m, n = self.A.shape
+
+        M = np.linalg.inv(np.eye(m,n) - self.A*h)
+
+        xi = M*(self.x[i-1] + h*self.g_func(i*h))
+
+        self.x.append( xi )
+
+        return self.x[i]
+    
+
+    # Runge-Kutta method
+
+    def __runge_kutta__(self,h,i):
+        kn1 = kn2 = kn3 = kn4 = 0
+        
+        kn1 = self.xd_func(self.A,self.x[i-1],(i-1)*h)
+        kn2 = self.xd_func(self.A,self.x[i-1] + 0.5*h*kn1,((i-1)+0.5)*h)
+        kn3 = self.xd_func(self.A,self.x[i-1] + 0.5*h*kn2,((i-1)+0.5)*h)
+        kn4 = self.xd_func(self.A,self.x[i-1] + h*kn3,i*h)
+
+        xi = self.x[i-1] + h*(kn1 + 2*kn2 + 2*kn3 + kn4)/6
+
+        self.x.append( xi )
+
+        return self.x[i]
+
+    # Three term Adams-Bashforth Series method
+
+    def __adams_bashforth__(self,p, h,i):
+
+        integral = 0
+
+        if i <= p:
+            self.__runge_kutta__(h,i)
+        else:
+
+            if p == 1:
+
+                    xdn = self.xd_func(self.A,self.x[i-1],(i-1)*h)
+                    xdn_1 = self.xd_func(self.A,self.x[i-2],(i-2)*h)
+
+                    integral = (3*xdn*0.5 - xdn_1*0.5)*h
+
+            elif p == 2:
+                    xdn = self.xd_func(self.A,self.x[i-1],(i-1)*h)
+                    xdn_1 = self.xd_func(self.A,self.x[i-2],(i-2)*h)
+                    xdn_2 = self.xd_func(self.A,self.x[i-3],(i-3)*h)
+
+                    integral = h*((23.0/12.0)*xdn - (4.0/3.0)*xdn_1 + (5.0/12.0)*xdn_2)
+
+            elif p == 3:
+
+                    xdn = self.xd_func(self.A,self.x[i-1],(i-1)*h)
+                    xdn_1 = self.xd_func(self.A,self.x[i-2],(i-2)*h)
+                    xdn_2 = self.xd_func(self.A,self.x[i-3],(i-3)*h)
+                    xdn_3 = self.xd_func(self.A,self.x[i-4],(i-4)*h)
+
+                    integral = h*((55.0*xdn - 59.0*xdn_1 + 37.0*xdn_2 - 9.0*xdn_3)/24.0)
+
+            elif p == 4:
+                    xdn = self.xd_func(self.A,self.x[i-1],(i-1)*h)
+                    xdn_1 = self.xd_func(self.A,self.x[i-2],(i-2)*h)
+                    xdn_2 = self.xd_func(self.A,self.x[i-3],(i-3)*h)
+                    xdn_3 = self.xd_func(self.A,self.x[i-4],(i-4)*h)
+                    xdn_4 = self.xd_func(self.A,self.x[i-5],(i-5)*h)
+
+                    integral = h*((1901.0/720)*xdn - (1387.0/360)*xdn_1 + (109.0/30)*xdn_2 - (637.0/360)*xdn_3 + (251.0/720)*xdn_4)
+
+
+            xi = self.x[i-1] + integral
+
+            self.x.append( xi )
+
+        return self.x[i]
+
+
+
 
 
     def __select_method__(self,method="Euler"):
@@ -116,6 +209,25 @@ class DVSolver:
 
         if( method == "Euler" ):
             method_func = self.__euler__
+        elif (method == "BackEuler"):
+            method_func = self.__backward_euler__
+        elif (method == "ImpEuler"):
+            method_func = self.__improved_euler__
+        elif (method == "RungeKutta"):
+            method_func = self.__runge_kutta__
+        elif (method == "Adams-Bashforth1"):
+
+            method_func = partial(self.__adams_bashforth__,1)
+
+        elif (method == "Adams-Bashforth2"):
+
+            method_func = partial(self.__adams_bashforth__,2)
+        elif (method == "Adams-Bashforth3"):
+
+            method_func = partial(self.__adams_bashforth__,3)
+        elif (method == "Adams-Bashforth4"):
+
+            method_func = partial(self.__adams_bashforth__,4)
 
 
 
@@ -153,13 +265,9 @@ class DVSolver:
 
         mapped_x = map(lambda u: u[0,0], self.x)
 
-        print mapped_x
-
-        print len(mapped_x), len(self.t), len(self.phi)
-
         plt.subplot(2, 1, 1)
         plt.title(self.method + " (h = " + str(self.h) +")")
-        p1, = plt.plot(self.t, mapped_x, 'b', linewidth=1, label='y')
+        p1, = plt.plot(self.t, mapped_x, 'b', linewidth=2, label='y')
         p2, = plt.plot(self.t, self.phi, 'g', linewidth=1, label='phi(x)')
         plt.legend( [p1, p2], ['y', 'phi(x)'] )
 
@@ -191,13 +299,13 @@ def main(argv=None):
     g_expressions_str = ["0", "0", "0", "12*sin(t) - exp(-t)"] # Cada bixo eh uma expressao
     x0 = np.mat("3; 0; -1; 2")
     A = np.mat("0 1 0 0; 0 0 1 0; 0 0 0 1; 12 -8 -1 -2")
-    n = 10
-    h = 0.1
-    method = "Euler"
+    n = 100
+    h = 0.01
+    method = "Adams-Bashforth1"
 
     ds = DVSolver(A,x0,g_expressions_str,phi_expression_str)
 
-    ds.solve(x0,h,n)
+    ds.solve(x0,h,n,method)
 
     #for i in range(0,n):
     #    print "[", i, "] y = ", ds.x[i][0], " phi = ", ds.phi[i], " error = ", ds.error[i]
