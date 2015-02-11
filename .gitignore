@@ -5,3 +5,5 @@ matplot.py
 *.aux
 *.log
 *.toc
+*.png
+*.pdf
