@@ -5,7 +5,7 @@
 # (!!) -> YOU MUST USE THE VARIABLES x and y (IN LOWERCASE),
 # (!!) -> NO OTHER VARIABLE SYMBOL IS ALLOWED.
 #---------------------------------------------------------------------------------
-yd = "1-x + 4*y"
+yd = 1-x + 4*y
 
 #---------------------------------------------------------------------------------
 # Exact solution (if you dont have phi, make phi = None)
@@ -58,6 +58,6 @@ episolon = 0.3
 # 9) "BackDiff[X]" where [X] is one of the following values [1,2,3,4]
 #    (e.g. BackDiff1 is the Backward differentiation formula method of degree one)
 #--------------------------------------------------------------------------------- 
-Predictor-Corrector3
+BackDiff4
 
 

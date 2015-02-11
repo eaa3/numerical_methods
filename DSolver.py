@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 import subprocess
+import copy
 
 import sys
 
@@ -46,15 +47,17 @@ class DSolver:
     def __init__(self, yd_expression_str, phi_expr_str = None, episolon = 0.1):
 
         self.x_symb, self.y_symb, self.yd_symb = symbols("x y yd")
+        self.yd_expression_str = yd_expression_str
         self.yd_expr = sympify(yd_expression_str)
-        
+
         self.yd_func = lambdify((self.x_symb,self.y_symb),self.yd_expr,"numpy")
 
-        self.x = np.zeros
+        self.x = np.zeros(1)
         self.y = np.zeros
         self.yd = np.zeros
         self.phi = np.zeros
         self.error = np.zeros
+        self.accerror = np.zeros
 
         self.iyd = 0
 
@@ -68,11 +71,14 @@ class DSolver:
     # Initialization
     def __initialize__(self,x0,y0,n):
         
+        self.x = self.y = self.yd = self.phi = self.error = self.accerror = None
+
         self.x = np.zeros(n+1)
         self.y = np.zeros(n+1)
         self.yd = np.zeros(n+1)
         self.phi = np.zeros(n+1)
         self.error = np.zeros(n+1)
+        self.accerror = np.zeros(n+2)
 
         self.iyd = 0
 
@@ -83,6 +89,7 @@ class DSolver:
         if self.phi_func != None:
             self.phi[0] = self.phi_func(0)
             self.error[0] = self.phi[0] - self.y[0]
+            self.accerror[0] = self.accerror[0]
 
     # Yd (derivative of y) -- Unused
     def __yd__(self,h,i):
@@ -113,7 +120,7 @@ class DSolver:
     def __backward_euler__(self,h,i):
         
         yi = symbols("yi")
-   
+
         exp = self.y[i-1] + self.yd_expr.subs({self.y_symb:yi, self.x_symb:i*h})*h
         equ = Eq(exp,yi)
         
@@ -317,6 +324,7 @@ class DSolver:
         # Error very high! -> Decrease H
         if abs(y_tmp - self.y[i]) > self.episolon:
             print "Error very high! -> Decrease H"
+            #self.h *= 0.9
 
             #self.h *= 0.8
 
@@ -338,6 +346,7 @@ class DSolver:
 
 
         yi = symbols("yi")
+
 
         ydn1 = self.yd_expr.subs({self.y_symb:yi, self.x_symb:(i*h)})
 
@@ -463,6 +472,7 @@ class DSolver:
             if self.phi_func != None:
                 self.phi[i] = self.phi_func(self.h*i)
                 self.error[i] = self.phi[i] - self.y[i]
+                self.accerror[i] = abs(self.error[i]) + abs(self.error[i-1])
 
     def solve(self,x0,y0,h,n, method="Euler"):
 
@@ -473,7 +483,6 @@ class DSolver:
 
 
         self.__solve__(x0,y0,h,n,method_func)
-
 
     def plot(self,invert_yaxis = False ):
         plt.subplot(2, 1, 1)
@@ -494,6 +503,51 @@ class DSolver:
         if invert_yaxis: 
             ax.invert_yaxis()
         plt.show()
+
+    def plotExperiment(self, line_color = 'b', invert_yaxis = False ):
+        #plt.clf()
+
+        plt.subplot(2, 1, 1)
+        plt.title(self.method)
+        self.h = 0.1
+        self.solve(0,1,self.h,int((1.0/self.h)),self.method)
+        p1, = plt.plot(self.x, self.y, 'b', linewidth=1, label="y (h = " + str(0.1) +")")
+        ax = plt.subplot(2, 1, 2)
+        p51, = plt.plot(self.x,abs(self.error), 'b', linewidth=2, label='error')
+
+
+        plt.subplot(2, 1, 1)
+        self.h = 0.05
+        self.solve(0,1,self.h,int((1.0/self.h)),self.method)
+        p2, = plt.plot(self.x, self.y, 'c', linewidth=1, label="y (h = " + str(0.05) +")")
+        ax = plt.subplot(2, 1, 2)
+        p52, = plt.plot(self.x,abs(self.error), 'c', linewidth=2, label='error')
+
+
+        plt.subplot(2, 1, 1)
+        self.h = 0.025
+        self.solve(0,1,self.h,int((1.0/self.h)),self.method)
+        p3, = plt.plot(self.x, self.y, 'm', linewidth=1, label="y (h = " + str(0.025) +")")
+        ax = plt.subplot(2, 1, 2)
+        p53, = plt.plot(self.x,abs(self.error), 'm', linewidth=2, label='error')
+        plt.legend( [p51, p52, p53], ['abs error (h = 0.1)','abs error (h = 0.05)', 'abs error (h = 0.025)'], loc = 0 )
+
+
+        plt.subplot(2, 1, 1)
+        p4, = plt.plot(self.x, self.phi, 'g', linewidth=2, label='phi(x)')
+        plt.legend( [p1, p2,p3, p4], ["y (h = 0.1)","y (h = 0.05)","y (h = 0.025)", 'phi(x)'], loc=0 )
+
+
+        #verts = list(zip(self.x, abs(self.error)))
+
+        #poly = Polygon(verts, facecolor='0.9', edgecolor='0.5')
+        #ax.add_patch(poly)
+
+        if invert_yaxis: 
+            ax.invert_yaxis()
+        #plt.show()
+        plt.savefig("plots/"+self.method+ ".png")
+
 
 
 def readInput(filename):
@@ -516,7 +570,7 @@ def readInput(filename):
 
         valid_lines = [line.replace(' ','').replace('\n','').replace('\r','') for line in lines if ((not line.startswith("#")) and len(line.replace(" ",'')) > 1)]
 
-        print valid_lines
+   
         # y' = g(x) - p(x)*y
         yd_str = valid_lines[0].split("=")[1]
 
@@ -546,6 +600,7 @@ def readInput(filename):
 
     return (yd_expression,phi_expression,y0,n,h,episolon,method)
 
+
 def main(argv=None):
 
     yd_expression = None
@@ -567,6 +622,84 @@ def main(argv=None):
     print "Acumulated Error: ", sum(abs(ds.error))
 
     ds.plot()
+
+
+def mainExperiment(argv=None):
+
+    starting_methods = ["Euler", "BackEuler", "ImpEuler", "RungeKutta", "Taylor"]
+    multistep_methods = ["Adams-Bashforth", "Adams-Multon","Predictor-Corrector","BackDiff"]
+    colors = ['b','m','c']
+    hs = [0.1, 0.05, 0.025]
+    yd_expression = None
+    phi_expression = None
+    y0 = 0
+    n = 0
+    h = 0.1
+    method = "Euler"
+
+    yd_expression,phi_expression,y0,n,h,episolon,method = readInput(argv[1] if len(argv)>1 else "inputFile.txt")
+    
+    ds = DSolver(yd_expression, phi_expression,episolon)
+
+    out_file = open("experiment_report.txt",'w')
+
+    
+    for method in starting_methods:
+        plt.clf()
+        out_file.write("----------------------------------------------------------------\n")
+        out_file.write("METHOD: " + method + "\n")
+
+
+        x = y = phi = error = accerror = []
+        for j in range(0,len(hs)):
+            h = hs[j]
+            ds.solve(0,y0,h,int((1.0/h)),method)
+            out_file.write("H: " + str(h) + " N: " + str(int((1.0/h))) + "\n")
+            out_file.write("X: " + str(ds.x) + "\n")
+            out_file.write("Y: " + str(ds.y) + "\n")
+            out_file.write("Phi: " + str(ds.phi)+ "\n")
+            out_file.write("Error: " + str(ds.error)+ "\n")
+            out_file.write("Acumulated Error: " + str(sum(abs(ds.error))) + "\n")
+
+            
+
+
+        ds.plotExperiment(colors[j])
+
+    for k in range(0,len(multistep_methods)):
+        for i in range(1,5):
+            plt.clf()
+            method = multistep_methods[k] + str(i)
+            out_file.write("METHOD: " + method + "\n")
+            for j in range(0,len(hs)):
+                h = hs[j]
+                ds.solve(0,y0,h,int((1.0/h)),method)
+                out_file.write("H: " + str(h) + " N: " + str(int((1.0/h))) + "\n")
+                out_file.write("X: " + str(ds.x) + "\n")
+                out_file.write("Y: " + str(ds.y) + "\n")
+                out_file.write("Phi: " + str(ds.phi)+ "\n")
+                out_file.write("Error: " + str(ds.error)+ "\n")
+                out_file.write("Acumulated Error: " + str(sum(abs(ds.error)))+ "\n")
+
+
+            ds.plotExperiment(colors[j])
+            #out_file.write('\n')
+
+
+        #out_file.write('\n')
+    #out_file.close()
+
+
+
+
+    #print "Y: ", ds.y
+    #print "Phi: ", ds.phi
+    #print "Error: ", ds.error
+    #print "Acumulated Error: ", sum(abs(ds.error))
+
+    #ds.plot()
+
+    out_file.close()
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
